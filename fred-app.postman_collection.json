@@ -752,7 +752,7 @@
 							"bearer": [
 								{
 									"key": "token",
-									"value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vMTI3LjAuMC4xOjgwMDAvYXBpL2RyaXZlci9sb2dpbiIsImlhdCI6MTc1OTI5NDE0NywiZXhwIjoxNzU5Mjk3NzQ3LCJuYmYiOjE3NTkyOTQxNDcsImp0aSI6IjFXMUNkZG5LTklCSVZ4a3ciLCJzdWIiOiIxIiwicHJ2IjoiOTE5YzMyNmQ0M2FiMTUxOWE4YmEzYjg1ODZiNjg3NTJlOGM4MzgwNyJ9.px2bU2UoKoP1e1kLw-pngMpeaedposvScwmUrJ5Nam8",
+									"value": "{{driver_token}}",
 									"type": "string"
 								}
 							]
@@ -760,17 +760,11 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "http://127.0.0.1:8000/api/driver/logout",
-							"protocol": "http",
+							"raw": "{{base_url}}/driver/logout",
 							"host": [
-								"127",
-								"0",
-								"0",
-								"1"
+								"{{base_url}}"
 							],
-							"port": "8000",
 							"path": [
-								"api",
 								"driver",
 								"logout"
 							]
