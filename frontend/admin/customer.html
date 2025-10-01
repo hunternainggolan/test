@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Customer</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Admin Dashboard - List Customer</h2>
+            <div>
+                <a href="order.html" class="btn btn-warning">View Order</a>
+                <a href="dashboard.html" class="btn btn-primary">View Customer</a>
+                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</button>
+            </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alertBox"></div>
+
+        <!-- Table -->
+        <div class="card shadow-sm p-3 rounded-3">
+            <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="customersTableBody">
+                    <tr>
+                        <td colspan="4" class="text-center">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Modal Logout-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Logout Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure to logout?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="confirmLogout" type="button" class="btn btn-danger">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const alertBox = document.getElementById('alertBox');
+        const customersTableBody = document.getElementById('customersTableBody');
+        const token = localStorage.getItem('token');
+        const tokenType = localStorage.getItem('token_type') || 'Bearer';
+
+        // Redirect ke login kalau belum ada token
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // Get Customer
+        async function loadCustomers() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/customers', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `${tokenType} ${token}`
+                    }
+                });
+
+                const data = await res.json();
+                if (res.ok && data.status) {
+                    renderCustomers(data.data);
+                } else {
+                    customersTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Gagal memuat data customer</td></tr>`;
+                }
+            } catch (error) {
+                customersTableBody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        // render data into tabel
+        function renderCustomers(customers) {
+            if (!customers || customers.length === 0) {
+                customersTableBody.innerHTML = `<tr><td colspan="4" class="text-center">Belum ada customer</td></tr>`;
+                return;
+            }
+
+            customersTableBody.innerHTML = customers.map(customer => `
+        <tr>
+          <td>${customer.id}</td>
+          <td>${customer.name}</td>
+          <td>${customer.email}</td>
+          <td>${`<a class="btn btn-sm btn-info" href="customer-order.html?id=${customer.id}">View Order</a>`}</td>
+        </tr>`).join('');
+        }
+
+        // Logout
+        document.getElementById('confirmLogout').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        });
+
+        // Load customers
+        loadCustomers();
+
+    </script>
+</body>
+
+</html>

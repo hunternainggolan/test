@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Orders</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Orders Dashboard</h2>
+            <div>
+                <!-- Tombol Tambah Order -->
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#orderModal">+ Add Order</button>
+                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#logoutModal">Logout</button>
+            </div>
+        </div>
+
+        <!-- Alert -->
+        <div id="alertBox"></div>
+
+        <!-- Table -->
+        <div class="card shadow-sm p-3 rounded-3">
+            <table class="table table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Address</th>
+                        <th>Payment Status</th>
+                        <th>Delivery Status</th>
+                        <th>Driver Name</th>
+                        <th>Driver Register Number</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersTableBody">
+                    <tr>
+                        <td colspan="9" class="text-center">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Modal Logout-->
+    <div class="modal fade" id="logoutModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Logout Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure to logout?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="confirmLogout" type="button" class="btn btn-danger">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Add Order -->
+    <div class="modal fade" id="orderModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="orderForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Order</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Order Name</label>
+                            <input type="text" id="orderName" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Address</label>
+                            <input type="text" id="orderAddress" class="form-control" required>
+                        </div>
+                        <div id="orderAlert"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Payment -->
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="paymentForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Pay Order</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="paymentOrderId">
+                        <div class="mb-3">
+                            <label class="form-label">Nominal (Rp)</label>
+                            <input type="number" id="paymentValue" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Payment Method</label>
+                            <select id="paymentMethod" class="form-select" required>
+                                <option value="">-- Chosee method --</option>
+                                <option value="cod">COD</option>
+                                <option value="transfer">Transfer</option>
+                                <option value="qris">QRIS</option>
+                            </select>
+                        </div>
+                        <div id="paymentAlert"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Pay</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const alertBox = document.getElementById('alertBox');
+        const ordersTableBody = document.getElementById('ordersTableBody');
+        const token = localStorage.getItem('token');
+        const tokenType = localStorage.getItem('token_type') || 'Bearer';
+
+        // Redirect ke login kalau belum ada token
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        // Get Order data by Customer
+        async function loadOrders() {
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/orders', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `${tokenType} ${token}`
+                    }
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.status) {
+                    renderOrders(data.data);
+                } else {
+                    ordersTableBody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Gagal memuat data order</td></tr>`;
+                }
+            } catch (error) {
+                ordersTableBody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+            }
+        }
+
+        // render data into tabel
+        function renderOrders(orders) {
+            if (!orders || orders.length === 0) {
+                ordersTableBody.innerHTML = `<tr><td colspan="9" class="text-center">Belum ada order</td></tr>`;
+                return;
+            }
+
+            ordersTableBody.innerHTML = orders.map(order => `
+        <tr>
+          <td>${order.id}</td>
+          <td>${order.name}</td>
+          <td>${order.price}</td>
+          <td>${order.address}</td>
+          <td>${order.payment_status === 'waiting' ?
+                    '<span class="badge bg-warning">Awaiting Payment</span>' : '<span class="badge bg-success">Paid</span>'}</td>
+          <td>${order.delivery_status === 'waiting' ?
+                    '<span class="badge bg-warning">Awaiting Driver</span>' : order.delivery_status === 'shipping' ? '<span class="badge bg-info">Out for Delivery</span>' :
+                        order.delivery_status === 'delivered' ? '<span class="badge bg-success">Delivered</span>' : order.delivery_status === 'cancelled' ? '<span class="badge bg-danger">Canceled</span>' : ''
+                }</td>
+          <td>${order.delivery_status === 'shipping' || order.delivery_status === 'delivered' ? order.driver.name : ''}</td>
+          <td>${order.delivery_status === 'shipping' || order.delivery_status === 'delivered' ? order.driver.register_number : ''}</td>
+          <td> ${order.payment_status === 'waiting'
+                    ? `<button class="btn btn-sm btn-primary" onclick="openPaymentModal(${order.id},${order.price})">Pay</button>` : ''}</td>
+        </tr>`).join('');
+        }
+
+        // Logout
+        document.getElementById('confirmLogout').addEventListener('click', () => {
+            localStorage.clear();
+            window.location.href = 'login.html';
+        });
+
+        // Load orders
+        loadOrders();
+
+        // Add Order
+        orderForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('orderName').value;
+            const address = document.getElementById('orderAddress').value;
+
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/orders', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `${tokenType} ${token}`
+                    },
+                    body: JSON.stringify({ name, address })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.status) {
+                    orderAlert.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+
+                    // reset form
+                    orderForm.reset();
+
+                    // reload data orders di tabel
+                    loadOrders();
+
+                    // tutup modal setelah 1 detik
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('orderModal'));
+                        modal.hide();
+                        orderAlert.innerHTML = "";
+                    }, 1000);
+
+                } else {
+                    let errorMessages = '';
+                    if (data.errors) {
+                        Object.values(data.errors).forEach(errArr => {
+                            errorMessages += `<li>${errArr.join(', ')}</li>`;
+                        });
+                        errorMessages = `<ul>${errorMessages}</ul>`;
+                    }
+                    orderAlert.innerHTML = `<div class="alert alert-danger">${data.message || 'Gagal membuat order'}${errorMessages}</div>`;
+                }
+            } catch (error) {
+                orderAlert.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        });
+
+        //Payment
+        function openPaymentModal(orderId, price) {
+            document.getElementById('paymentOrderId').value = orderId;
+            document.getElementById('paymentValue').value = price;
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('paymentAlert').innerHTML = '';
+            const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            modal.show();
+        }
+
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const orderId = document.getElementById('paymentOrderId').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const paymentValue = document.getElementById('paymentValue').value;
+            const paymentAlert = document.getElementById('paymentAlert');
+
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/payments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `${tokenType} ${token}`
+                    },
+                    body: JSON.stringify({
+                        order_id: orderId,
+                        payment_method: paymentMethod,
+                        value: paymentValue
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.status) {
+                    paymentAlert.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    loadOrders();
+
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('paymentModal'));
+                        modal.hide();
+                        paymentAlert.innerHTML = '';
+                    }, 1000);
+                } else {
+                    paymentAlert.innerHTML = `<div class="alert alert-danger">${data.message || 'Pembayaran gagal'}</div>`;
+                }
+            } catch (err) {
+                paymentAlert.innerHTML = `<div class="alert alert-danger">Error: ${err.message}</div>`;
+            }
+        });
+
+
+
+    </script>
+</body>
+
+</html>

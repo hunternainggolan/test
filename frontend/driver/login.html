@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Login</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-5">
+                <div class="card shadow p-4 rounded-3">
+                    <h3 class="text-center mb-4">Login</h3>
+
+                    <!-- Alert -->
+                    <div id="alertBox"></div>
+
+                    <!-- Form -->
+                    <form id="loginForm">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email address</label>
+                            <input type="email" class="form-control" id="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const alertBox = document.getElementById('alertBox');
+        const token = localStorage.getItem('token');
+
+        // Redirect ke dashboard kalau token masih ada
+        if (token) {
+            window.location.href = 'dashboard.html';
+        }
+        console.log(token);
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+
+            try {
+                const res = await fetch('http://127.0.0.1:8000/api/driver/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+
+                if (res.ok && data.status) {
+                    // simpan token ke localStorage
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('token_type', data.token_type);
+                    localStorage.setItem('expires_in', data.expires_in);
+
+                    alertBox.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+
+                    // redirect ke dashboard setelah 2 detik
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 2000);
+                } else {
+                    // tampilkan error
+                    alertBox.innerHTML = `<div class="alert alert-danger">${data.message || 'Login failed'}</div>`;
+                }
+            } catch (error) {
+                alertBox.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        });
+    </script>
+
+</body>
+
+</html>
